@@ -4,6 +4,7 @@ Find all possible configurations of the board
 from itertools import permutations
 from Read_in_bff_file import get_grid
 from Read_in_bff_file import get_blocks
+
 def get_permutations(list_for_perm):
     list_for_perm = list_for_perm
     config_list = []

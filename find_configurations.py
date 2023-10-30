@@ -6,7 +6,6 @@ from Read_in_bff_file import get_grid
 from Read_in_bff_file import get_blocks
 
 def get_permutations(list_for_perm):
-    list_for_perm = list_for_perm
     config_list = []
     for p in permutations(list_for_perm):
         if p not in config_list:
@@ -51,7 +50,30 @@ def get_config(grid, blocks):
     return get_permutations(list_for_perm)
 
 
+def get_boards(grid, configs):
+    list_of_board = []
+    boards = []
+
+    for row in grid:
+        for element in row:
+            list_of_board.append(element)
+    
+    for config in configs:
+        count = 0
+        new = []
+        for entry in list_of_board:
+            if entry == 'o':
+                new.append(config[count])
+                count = count + 1
+            else:
+                new.append(entry)
+
+        boards.append(new)
+    return boards
+
+
 if __name__ == "__main__":
     grid = get_grid('tiny_5.bff')
     blocks = get_blocks('tiny_5.bff')
     config = get_config(grid, blocks)
+    boards = get_boards(grid, configs)

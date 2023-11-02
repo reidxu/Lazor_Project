@@ -119,8 +119,45 @@ def get_boards(grid, configs):
     return boards
 
 
+def board_dictionary(grid, boards):
+    '''
+    Convert all board configurations to dictionaries of coordinates
+
+    **Parameters**
+
+        grid: *array*
+            The grid of board elements
+        boards: *list*
+            A list containing all lists of configurations of the board.
+
+    **Returns**
+
+        board_dictionary: *dict*
+            A dictionary where the keys are x, y coordinates and the values
+            are the board elements
+    '''  
+    board_dim_x = grid.shape[0]
+    board_dim_y = grid.shape[1]
+    x_vals = []
+    y_vals = []
+    for i in range(board_dim_x):
+        x_vals.append(i)
+    for j in range(board_dim_y):
+        y_vals.append(j)
+        
+    coordinates = []
+    for i in range(len(x_vals)):
+        for j in range(len(y_vals)):
+            coordinates.append((x_vals[i], y_vals[j]))
+    board_dictionary = []
+    for board in boards:
+        board_dictionary.append(dict(zip(coordinates, board)))
+    
+    return board_dictionary
+
 if __name__ == "__main__":
     grid = get_grid('tiny_5.bff')
     blocks = get_blocks('tiny_5.bff')
     config = get_config(grid, blocks)
     boards = get_boards(grid, configs)
+    board_dictionary = board_dictionary(grid, boards)

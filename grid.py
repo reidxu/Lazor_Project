@@ -304,9 +304,9 @@ class Grid:
             y_vals.append(j)
             
         coordinates = []
-        for i in range(len(x_vals)):
-            for j in range(len(y_vals)):
-                coordinates.append((x_vals[i], y_vals[j]))
+        for i in range(len(y_vals)):
+            for j in range(len(x_vals)):
+                coordinates.append((x_vals[j], y_vals[i]))
         board_dictionary = []
         for board in boards:
             board_dictionary.append(dict(zip(coordinates, board)))

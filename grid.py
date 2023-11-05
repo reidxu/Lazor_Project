@@ -1,26 +1,23 @@
 '''
 Read in and extract all relevant data from bff file
 '''
-        
+    
 import numpy as np   
 from more_itertools import distinct_permutations as idp
-#import blocks
+from blocks import Block
 
-class Block:
-    def __init__(self, block_type, x = -1, y = -1):
-        
-        self.block_type = block_type
-        self.x = x
-        self.y = y
-
-
+### TODO: Add check to make sure laser direction abs(slope) = 1
+### TODO: Can you add two blocks next to eachother??
 class Grid:
 
     def __init__(self, fname):
 
         self.fname=fname
-        #self.grid = self.get_grid(fname)
-        #self.blocks = self.load_blocks(fname)
+        self.grid = self.get_grid()
+        self.solved_grid = self.grid.copy()
+        self.block_dict = self.get_blocks()
+        self.laser_dict = self.get_laser_pos()
+
     
     def load_blocks(self):
         '''
@@ -134,6 +131,52 @@ class Grid:
             block_dict.update(dict_C)
 
         return block_dict
+    
+    def get_laser_pos(self):
+        '''
+        Find the x and y coordinates of the laser and the vx and vy directions
+        it's facing.
+
+        **Parameters**
+
+            fname: *str*
+                The file name to read in
+
+        **Returns**
+
+            laser_dict: *dictionary*
+                A dictionary that contains the laser number and its corresponding
+                integer x, y, vx, vy values as a tuple.
+        '''  
+        infile = open(self.fname)
+        x_list = []
+        y_list = []
+        vx_list = []
+        vy_list = []
+        start_search = False
+        for line in infile:
+            if '#' in line:
+                continue
+            elif line.strip() == 'GRID STOP':
+                start_search = True
+            elif start_search:
+                if 'L ' in line:
+                    laser_pos_raw = [i for i in line.strip().split(' ')]
+                    x_list.append(int(laser_pos_raw[1]))
+                    y_list.append(int(laser_pos_raw[2]))
+                    vx_list.append(int(laser_pos_raw[3]))
+                    vy_list.append(int(laser_pos_raw[4]))
+
+        laser_num = len(x_list)
+        laser_dict = {}
+        keys = range(laser_num)
+        for i in keys:
+            x = x_list[i]
+            y = y_list[i]
+            vx = vx_list[i]
+            vy = vy_list[i]
+            laser_dict[i] = (x, y, vx, vy)
+        return laser_dict
         
     def get_permutations(self,list_for_perm):
         '''
@@ -177,43 +220,103 @@ class Grid:
             config_list: *list*
                 A list containing all lists of configurations of the availabe spots.
         '''  
-        grid = self.get_grid()
-        blocks = self.get_blocks()
         available = 0
-        for x in grid:
+        for x in self.grid:
             for y in x:
                 if y == 'o':
                     available = available + 1
 
         block_types = []
         block_numbers = []
-        for i in blocks:
-            block_types.append(i)
-            block_numbers.append(blocks[i])
+        for key, val in self.block_dict.items():
+            block_types.append(key)
+            block_numbers.append(val)
 
-        blocks_sum = 0
-        for num in block_numbers:
-            blocks_sum = blocks_sum + num
+        blocks_sum = sum(block_numbers)
 
         open_spots = available - blocks_sum
+
         list_for_perm = []
         for i in range(open_spots):
             list_for_perm.append(int(0))
 
         for j in block_types:
             if j == 'reflective_blocks':
-                for k in range(blocks[j]):
+                for k in range(self.block_dict[j]):
                     list_for_perm.append(int(1))
             if j == 'opaque_blocks':
-                for l in range(blocks[j]):
+                for l in range(self.block_dict[j]):
                     list_for_perm.append(int(2))
             if j == 'refractive_blocks':
-                for h in range(blocks[j]):
+                for h in range(self.block_dict[j]):
                     list_for_perm.append(int(3))
 
         configs = self.get_permutations(list_for_perm)
         return configs
     
+    def config_to_board(self, config): 
+        '''
+        Converts config to board/grid layout. 
+
+        **Parameters**
+
+            config: *list*
+                A list containing one configuration of the available spots.
+
+        **Returns**
+
+            boards: *np.array*
+                An array containing the configuration on the grid
+        ''' 
+        board = self.grid.copy()
+        idx = 0
+        for i, row in enumerate(board): 
+            for j, ele in enumerate(row):
+                if ele == 'o':
+                    block = Block(config[idx], i , j)
+                    board = block.add_to_board(board)
+                    idx += 1
+        return board
+    
+
+    def get_laser_path(self, board):
+        '''
+        '''
+        laser_path = np.zeros_like(self.grid)
+        for laser, val in self.laser_dict.items():
+            laser_path = np.zeros_like(self.grid)
+            pos = (val[0],val[1])
+            vx, vy, = val[2], val[3]
+            while self.in_grid(pos):
+                laser_path[val[0],val[1]] = 1
+                if isinstance(board[pos[0]][pos[1]], Block):
+                    pos, vx, vy = board[pos[0]][pos[1]].laser(vx, vy)
+                else:
+                    pos[0] = pos[0] + vx
+                    pos[1] = pos[1] + vy
+        return
+    
+
+    def in_grid(self, pos):
+        '''
+        Checks if position is inside the grid
+
+        **Parameters**
+
+            pos: *list*
+                x and y position
+
+        **Returns**
+
+            bool
+                True if in grid, False if outside.
+        ''' 
+        if pos[0] < 0 or pos[1] < 0:
+            return False
+        if pos[0] >= len(self.grid) or pos[1] >= len(self.grid[0]):
+            return False
+
+
     def get_boards(self):
         '''
         Find all the configurations of the available spots on the board
@@ -223,19 +326,18 @@ class Grid:
             grid: *array*
                 The grid of board elements
             configs: *list*
-                A list containing all lists of configurations of the availabe spots.
+                A list containing all lists of configurations of the available spots.
 
         **Returns**
 
             boards: *list*
                 A list containing all lists of configurations of the board.
         '''  
-        grid = self.get_grid()
         configs =self.get_configs()
         list_of_board = []
         boards = []
-
-        for row in grid:
+        
+        for row in self.grid:
             for element in row:
                 list_of_board.append(element)
         
@@ -282,10 +384,9 @@ class Grid:
                 {(x,y):  [0,1]} This means at the coord (x,y), it is empty and laser present.
         
         '''  
-        grid  = self.get_grid()
         boards = self.get_configs()
-        board_dim_x = grid.shape[0]
-        board_dim_y = grid.shape[1]
+        board_dim_x = self.grid.shape[0]
+        board_dim_y = self.grid.shape[1]
         x_vals = []
         y_vals = []
 
@@ -311,7 +412,8 @@ class Grid:
 if __name__ == "__main__":
     fname = 'mad_1.bff'
     grid = Grid(fname)
-    print(grid.get_grid())
-    print(grid.get_blocks())
-    #print(grid.load_blocks())
-    #print(grid.board_dictionary())
+    print(grid.grid)
+    print(grid.block_dict)
+    print(grid.get_configs()[0])
+    print(grid.config_to_board(grid.get_configs()[0]))
+    print(grid.laser_dict)

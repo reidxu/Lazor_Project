@@ -1,13 +1,11 @@
-import grid 
 
-class Block:
-    def __init__(self, block_type, x = -1, y = -1):
-        
-        self.block_type = block_type
-        self.x = x
-        self.y = y
-
-    def laser(self, board, curr_pos, direction):
+class Edge: 
+    def __init__(self, edge_type, edge_side, edge_pos):
+        self.type = edge_type
+        self.side = edge_side
+        self.pos = edge_pos
+    
+    def laser(self, board, vx, vy):
         """
         Sets current pos as laser present and performs change in direction based off the block type 
 
@@ -25,14 +23,15 @@ class Block:
             direciton: **tuple**
                 New direction depending on the block the laser hits
         """
+        new_pos = (-1,-1)
         if self.block_type  == 0: #no block condition
-            board[curr_pos][1] = 1 #list of block type sets laser present
-            return board, direction # no change in direction for no blocks
+            new_pos[0] = self.x + vx
+            new_pos[1] = self.y + vy
+            return new_pos, vx, vy # no change in direction for no blocks
         
         if self.block_type == 1: #Refelctive block condition
             
-            board[curr_pos][1] = 1
-            
+                       
             vx = direction[0]
             vy = direction[1]
             
@@ -66,9 +65,26 @@ class Block:
             direction = (vx_1, vy_1, vx_2, vy_2)
             return board, direction
 
+class Block:
+    def __init__(self, block_type, x = -1, y = -1):
+        self.block_type = block_type
+        self.x = x
+        self.y = y
+        self.edges = self.get_edges()
+    
+    def add_to_board(self, board):
+        for edge in self.edges: 
+            board[edge.pos[0],edge.pos[1]] = self.block_type
+        return board
 
-
-
-if __name__ == "__main__":
-    board={(0, 0): [3, 0], (0, 1): ['B', 0], (0, 2): [1, 0], (1, 0): [1, 0], (1, 1): [0, 0], (1, 2): [1, 0], (2, 0): [0, 0], (2, 1): [0, 0], (2, 2): [0, 0]}, {(0, 0): [3, 0], (0, 1): ['B', 0], (0, 2): [1, 0], (1, 0): [1, 0], (1, 1): [1, 0], (1, 2): [0, 0], (2, 0): [0, 0], (2, 1): [0, 0], (2, 2): [0, 0]}
-    test = Block()
+    
+    def get_edges(self):
+        edges_pos = [(-1,0),(1,0),(0,-1),(0,1)]
+        edges = []
+        for edge in edges_pos: 
+            edge_pos = (self.x + edge[0],self.y + edge[1])
+            edges.append(Edge(self.block_type, edge, edge_pos))
+        return edges
+        
+            
+        

@@ -24,7 +24,6 @@ def get_permutations(list_for_perm):
     config_list = list(perm)
     return config_list
 
-
 def get_configs(grid, blocks):
     '''
     Find all the configurations of the available spots on the board
@@ -155,9 +154,68 @@ def board_dictionary(grid, boards):
     
     return board_dictionary
 
+def board_coordinates(board_dictionary):
+    '''
+    Changes the dimensions of the board_dictionary to translate to a grid.
+    The board_dictionary does not account for step size. 
+    
+    For example, an element of a dictionary from board_dictionary could be 
+    (0,0): B, where (0,0) is the location of the B block
+
+    However, step size is by half blocks so the block dimension will actually
+    be 2 x 2. Therefore, this will yeild 9 coordinates such that
+    (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)): 
+    B
+    
+    where all 9 coordinates have the B value.
+
+    **Parameters**
+
+        board_dictionary: *dict*
+            A dictionary where the keys are x, y coordinates and the values
+            are the board elements
+
+    **Returns**
+
+        board_coordinates: *list*
+            A list of dictionaries where the keys are x, y coordinates and the values
+            are the board elements
+    '''  
+    board_coordinates = []
+    for board in board_dictionary:
+
+        block_coordinates = []
+        for i in board:
+            block_coordinates.append(i)
+        board_dictionary = {}
+        for block in block_coordinates:
+            block = block
+            element = board.get(block)
+            new_block_x = block[0] * 2
+            new_block_y = block[1] * 2
+            new_x_list = []
+            new_y_list = []
+            range_of_block = 3
+            for i in range(range_of_block):
+                new_x_list.append(new_block_x + i)
+                new_y_list.append(new_block_y + i)
+            coordinates = []
+            for i in range(len(new_y_list)):
+                for j in range(len(new_x_list)):
+                    coordinates.append((new_x_list[j], new_y_list[i]))
+            coord_tup = tuple(coordinates)
+            
+            board_dictionary[coord_tup] = element
+        board_coordinates.append(board_dictionary)
+    
+    
+    return board_coordinates
+
+
 if __name__ == "__main__":
     grid = get_grid('tiny_5.bff')
     blocks = get_blocks('tiny_5.bff')
     config = get_config(grid, blocks)
     boards = get_boards(grid, configs)
     board_dictionary = board_dictionary(grid, boards)
+    board_coordinates = board_coordinates(board_dictionary)

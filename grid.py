@@ -4,7 +4,7 @@ Read in and extract all relevant data from bff file
         
 import numpy as np   
 from more_itertools import distinct_permutations as idp
-import blocks
+#import blocks
 
 class Block:
     def __init__(self, block_type, x = -1, y = -1):
@@ -73,6 +73,25 @@ class Grid:
             elif start_search:
                 grid_list.append([i for i in line.strip() if i != ' '])
 
+
+        num_cols = len(grid_list[0])
+        num_rows = len(grid_list)
+
+        for row in grid_list:
+            for i in range(num_cols - 1, 0, -1):
+                row.insert(i, ' ')
+
+        num_cols = len(grid_list[0])
+        row_to_add = grid_list[0]
+
+        for i in range(num_cols):
+            row_to_add[i] = ' '
+
+
+        for i in range(num_rows - 1, 0, -1):
+            grid_list.insert(i, row_to_add)
+            
+        print('grid list', grid_list)
         grid = np.array(grid_list)
         return grid
     
@@ -301,7 +320,7 @@ class Grid:
 if __name__ == "__main__":
     fname = 'mad_1.bff'
     grid = Grid(fname)
-    #print(grid.get_grid())
-    #print(grid.get_blocks())
+    print(grid.get_grid())
+    print(grid.get_blocks())
     #print(grid.load_blocks())
-    print(grid.board_dictionary())
+    #print(grid.board_dictionary())

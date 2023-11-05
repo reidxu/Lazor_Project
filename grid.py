@@ -77,22 +77,12 @@ class Grid:
         num_cols = len(grid_list[0])
         num_rows = len(grid_list)
 
-        for row in grid_list:
-            for i in range(num_cols - 1, 0, -1):
-                row.insert(i, ' ')
+        # add space ' ' in between grid elements ('o' or 'x')
+        grid = np.full((num_cols*2 + 1, num_rows*2 +1), ' ')
+        for i, row in enumerate(grid_list):
+            for j, ele in enumerate(row):
+                grid[i*2+1, j*2+1] = ele
 
-        num_cols = len(grid_list[0])
-        row_to_add = grid_list[0]
-
-        for i in range(num_cols):
-            row_to_add[i] = ' '
-
-
-        for i in range(num_rows - 1, 0, -1):
-            grid_list.insert(i, row_to_add)
-            
-        print('grid list', grid_list)
-        grid = np.array(grid_list)
         return grid
     
     def get_blocks(self):
@@ -261,6 +251,7 @@ class Grid:
 
             boards.append(new)
         return boards
+
     def board_dictionary(self):
         '''
         Convert all board configurations to dictionaries of coordinates

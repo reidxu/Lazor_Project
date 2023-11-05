@@ -136,8 +136,8 @@ def board_dictionary(grid, boards):
             A dictionary where the keys are x, y coordinates and the values
             are the board elements
     '''  
-    board_dim_x = grid.shape[0]
-    board_dim_y = grid.shape[1]
+    board_dim_x = grid.shape[1] 
+    board_dim_y = grid.shape[0] 
     x_vals = []
     y_vals = []
     for i in range(board_dim_x):
@@ -146,9 +146,10 @@ def board_dictionary(grid, boards):
         y_vals.append(j)
         
     coordinates = []
-    for i in range(len(x_vals)):
-        for j in range(len(y_vals)):
-            coordinates.append((x_vals[i], y_vals[j]))
+    for i in range(len(y_vals)):
+        for j in range(len(x_vals)):
+            coordinates.append((x_vals[j], y_vals[i]))
+
     board_dictionary = []
     for board in boards:
         board_dictionary.append(dict(zip(coordinates, board)))

@@ -12,41 +12,39 @@ import glob
 ### TODO: Add check to make sure laser direction abs(slope) = 1
 ### TODO: Can you add two blocks next to eachother??
 ### TODO: Convert final board to desired output, not sure what it needs to be
+### TODO: general error checking
 
 class Grid:
 
     def __init__(self, fname):
-
-        self.fname=fname
-        self.grid = self.get_grid()
-        self.solved_grid = self.grid.copy()
-        self.block_dict = self.get_blocks()
-        self.laser_dict = self.get_laser_pos()
-        self.point_dict = self.get_goal_points()
-
-    
-    def load_blocks(self):
         '''
-        Get an array of grid elements.
+        A grid class for the lazor puzzle.
 
+        **Attributes**
+            fname: *str*
+                The file name to read in
+            grid: *np.array*
+                Array of lazor grid, with 'o', 'x', and ' ' values
+            block_dict: *dictionary*
+                A dictionary of blocks. Keys are block types and values are the
+                number of blocks
+            laser_dict: *dictionary*
+                A dictionary that contains the laser number and its corresponding
+                integer x, y, vx, vy values as a tuple.
+            point_dict: *dictionary*
+                A dictionary that contains the goal point number and it's
+                corresponding coordinates.
+            
         **Parameters**
 
             fname: *str*
                 The file name to read in
-
-        **Returns**
-
-            blocks: *list*
-                An list of Block classes.
         '''
-        block_dict = self.get_blocks()
-        blocks = []
-        for block, num in block_dict.items():
-            for i in range(num):
-                blocks.append(Block(block))
-        return blocks
-
-
+        self.fname=fname
+        self.grid = self.get_grid()
+        self.block_dict = self.get_blocks()
+        self.laser_dict = self.get_laser_pos()
+        self.point_dict = self.get_goal_points()
 
     def get_grid(self): 
         '''
@@ -60,7 +58,7 @@ class Grid:
         **Returns**
 
             grid: *array*
-                An array of elements. o is an open spot and x is an unavailable
+                An array of elements. o is an open spot, x is unavailable, and ' ' is between blocks
                 spot.
         '''         
         infile = open(self.fname)
@@ -302,7 +300,7 @@ class Grid:
     
     def config_to_board(self, config): 
         '''
-        Converts config to board/grid layout. 
+        Converts config to board/grid layout and converts elements to Block/Edge types. 
 
         **Parameters**
 
@@ -327,10 +325,22 @@ class Grid:
 
     def get_laser_path(self, board, slow = False):
         '''
+        Finds the path of the laser given a board configuration. 
+
+        **Parameters**
+
+            board: *np.array*
+                An array containing block information. 
+
+        **Returns**
+
+            laser_path: *np.array*
+                An array of the path the laser took based on block configuration. 0 for no laser, 1 for laser. 
         '''
         laser_path = np.zeros_like(self.grid, dtype=int)
         active_lasers = self.laser_dict.copy()
         if slow: 
+            # for testing only
             print(self.board_to_int(board))
             for k in range(4):
                 key, val = next(iter(active_lasers.items()))
@@ -344,7 +354,7 @@ class Grid:
                         print(temp_path)
 
                         if isinstance(board[pos[1]][pos[0]], Edge):
-                            pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers, temp_path)
+                            pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
                         else:
                             pos[0] = pos[0] + vx
                             pos[1] = pos[1] + vy
@@ -360,7 +370,7 @@ class Grid:
                     # np arrays are arr[y][x]
                     temp_path[pos[1]][pos[0]] = 1
                     if isinstance(board[pos[1]][pos[0]], Edge):
-                        pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers, temp_path)
+                        pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
                     else:
                         pos[0] = pos[0] + vx
                         pos[1] = pos[1] + vy
@@ -380,7 +390,7 @@ class Grid:
 
         **Returns**
 
-            bool
+            *bool*
                 True if in grid, False if outside.
         ''' 
         if pos[0] < 0 or pos[1] < 0:
@@ -391,7 +401,17 @@ class Grid:
     
     def board_to_int(self, board):
         '''
-        convert objects to ints for visability (internal only)
+        Convert objects to ints for visability (internal only) 
+
+        **Parameters**
+
+            board: *np.array*
+                An array containing block information. 
+
+        **Returns**
+
+            new_board: *np.array*
+                An array that contains the edge/block type as ints instead of class objects. 
         '''
         new_board = np.empty(board.shape, dtype = object)
         for i,row in enumerate(board): 
@@ -401,12 +421,40 @@ class Grid:
         return new_board
 
     def check_solution(self, laser_path):
+        '''
+        Checks board solution based on if the laser path intersects the goal points. 
+
+        **Parameters**
+
+            laser_path: *np.array*
+                An array of the path the laser took based on block configuration. 0 for no laser, 1 for laser.
+
+        **Returns**
+
+            *bool*
+                True if laser path hits contains all goal points, otherwise False
+        '''
         for key, val in self.point_dict.items():
             if laser_path[val[1], val[0]] == 0:
                 return False
         return True
     
     def find_solution(self, configs, slow = False):
+        '''
+        Checks all possible configs until a solution to the lazor puzzle is found. 
+
+        **Parameters**
+
+            configs: *list*
+                A list containing all lists of configurations of the availabe spots.
+
+        **Returns**
+
+            *np.array*
+                The board configuration that solves the puzzle. 
+            laser_path: *np.array*
+                The laser path of the solution
+        '''
         for i, config in enumerate(configs):
             # if i %1000==0: print(f'Testing config #{i}') 
             board = self.config_to_board(config)
@@ -417,99 +465,6 @@ class Grid:
                 return self.board_to_int(board), laser_path
         raise ValueError("No Solution Found")
 
-
-    def get_boards(self):
-        '''
-        Find all the configurations of the available spots on the board
-
-        **Parameters**
-
-            grid: *array*
-                The grid of board elements
-            configs: *list*
-                A list containing all lists of configurations of the available spots.
-
-        **Returns**
-
-            boards: *list*
-                A list containing all lists of configurations of the board.
-        '''  
-        configs =self.get_configs()
-        list_of_board = []
-        boards = []
-        
-        for row in self.grid:
-            for element in row:
-                list_of_board.append(element)
-        
-        for config in configs:
-            count = 0
-            new = []
-            for entry in list_of_board:
-                if entry == 'o':
-                    new.append(config[count])
-                    count = count + 1
-                else:
-                    new.append(entry)
-
-            boards.append(new)
-        return boards
-
-    def board_dictionary(self):
-        '''
-        Convert all board configurations to dictionaries of coordinates
-
-        **Parameters**
-
-            grid: *array*
-                The grid of board elements
-            boards: *list*
-                A list containing all lists of configurations of the board.
-
-        **Returns**
-
-            board_dictionary: *list*
-                A list of dictionaries where
-                each dictionary has the keys are x, y coordinates and the values
-                are the board elements and if laser is present
-                
-                * 0 = empty spot ('o')
-                * 1 = reflective block ('A')
-                * 2 = opaque block ('B')
-                * 3 = refractive block ('C')
-
-                * 0 = laser not present
-                * 1 = laser present
-
-                Example board dictionary: 
-                {(x,y):  [0,1]} This means at the coord (x,y), it is empty and laser present.
-        
-        '''  
-        boards = self.get_configs()
-        board_dim_x = self.grid.shape[0]
-        board_dim_y = self.grid.shape[1]
-        x_vals = []
-        y_vals = []
-
-        for i in range(board_dim_x):
-            x_vals.append(i)
-        for j in range(board_dim_y):
-            y_vals.append(j)
-            
-        coordinates = []
-        for i in range(len(y_vals)):
-            for j in range(len(x_vals)):
-                coordinates.append((x_vals[j], y_vals[i]))
-        board_dictionary = []
-        for board in boards:
-            board_dictionary.append(dict(zip(coordinates, board)))
-        for dictionary in board_dictionary:
-
-            for coord in dictionary:
-        
-                dictionary[coord] = [dictionary[coord], 0]
-        return board_dictionary
-    
 if __name__ == "__main__":
     dir = os.getcwd()
     fnames = glob.glob(os.path.join(dir, "*.bff"))

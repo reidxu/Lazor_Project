@@ -5,9 +5,14 @@ Read in and extract all relevant data from bff file
 import numpy as np   
 from more_itertools import distinct_permutations as idp
 from blocks import Block, Edge
+import time
+import os
+import glob
 
 ### TODO: Add check to make sure laser direction abs(slope) = 1
 ### TODO: Can you add two blocks next to eachother??
+### TODO: Convert final board to desired output, not sure what it needs to be
+
 class Grid:
 
     def __init__(self, fname):
@@ -17,6 +22,7 @@ class Grid:
         self.solved_grid = self.grid.copy()
         self.block_dict = self.get_blocks()
         self.laser_dict = self.get_laser_pos()
+        self.point_dict = self.get_goal_points()
 
     
     def load_blocks(self):
@@ -75,7 +81,7 @@ class Grid:
         num_rows = len(grid_list)
 
         # add space ' ' in between grid elements ('o' or 'x')
-        grid = np.full((num_cols*2 + 1, num_rows*2 +1), ' ')
+        grid = np.full((num_rows*2 + 1, num_cols*2 +1), ' ')
         for i, row in enumerate(grid_list):
             for j, ele in enumerate(row):
                 grid[i*2+1, j*2+1] = ele
@@ -178,6 +184,46 @@ class Grid:
             laser_dict[i] = (x, y, vx, vy)
         return laser_dict
         
+    def get_goal_points(self):
+        '''
+        Find the x and y coordinates of the goal points for the laser to intersect.
+
+        **Parameters**
+
+            fname: *str*
+                The file name to read in
+
+        **Returns**
+
+            point_dict: *dictionary*
+                A dictionary that contains the goal point number and it's
+                corresponding coordinates.
+        '''  
+        infile = open(self.fname)
+        x_list = []
+        y_list = []
+        start_search = False
+        for line in infile:
+            if '#' in line:
+                continue
+            elif line.strip() == 'GRID STOP':
+                start_search = True
+            elif start_search:
+                if 'P ' in line:
+                    point_pos_raw = [i for i in line.strip().split(' ')]
+                    x_list.append(int(point_pos_raw[1]))
+                    y_list.append(int(point_pos_raw[2]))
+
+        point_num = len(x_list)
+        point_dict = {}
+        keys = range(point_num)
+        for i in keys:
+            x = x_list[i]
+            y = y_list[i]
+            point_dict[i] = (x, y)
+
+        return point_dict
+
     def get_permutations(self,list_for_perm):
         '''
         Find all the permutations of the avaliable spots on the board
@@ -270,42 +316,56 @@ class Grid:
         ''' 
         board = np.empty(self.grid.shape, dtype=object)
         idx = 0
-        for i, row in enumerate(self.grid): 
-            for j, ele in enumerate(row):
+        for i, row in enumerate(self.grid):  #y
+            for j, ele in enumerate(row): #x
                 if ele == 'o':
-                    block = Block(config[idx], i , j)
+                    block = Block(config[idx], j , i)
                     board = block.add_to_board(board)
                     idx += 1
         return board
     
 
-    def get_laser_path(self, board):
+    def get_laser_path(self, board, slow = False):
         '''
         '''
         laser_path = np.zeros_like(self.grid, dtype=int)
         active_lasers = self.laser_dict.copy()
-        while len(active_lasers) != 0:
-            key, val = next(iter(active_lasers.items()))
-            temp_path = np.zeros_like(self.grid, dtype = int)
-            pos = [val[0],val[1]] # [x,y]
-            print(val)
-            vx, vy, = val[2], val[3]
-            print(pos)
-            while self.in_grid(pos):
-                print('hi')
-                # np arrays are arr[y][x]
-                temp_path[pos[1]][pos[0]] = 1
-                print(temp_path)
-                print(board[pos[1]][pos[0]])
-                if isinstance(board[pos[1]][pos[0]], Edge):
-                    print('hit edge')
-                    pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
-                else:
-                    pos[0] = pos[0] + vx
-                    pos[1] = pos[1] + vy
-            laser_path = laser_path + temp_path
-            del active_lasers[key]
-        print(self.board_to_int(board))
+        if slow: 
+            print(self.board_to_int(board))
+            for k in range(4):
+                key, val = next(iter(active_lasers.items()))
+                temp_path = np.zeros_like(self.grid, dtype = int)
+                pos = [val[0],val[1]] # [x,y]
+                vx, vy, = val[2], val[3]
+                for i in range(20): 
+                    if self.in_grid(pos):
+                        # np arrays are arr[y][x]
+                        temp_path[pos[1]][pos[0]] = 1
+                        print(temp_path)
+
+                        if isinstance(board[pos[1]][pos[0]], Edge):
+                            pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers, temp_path)
+                        else:
+                            pos[0] = pos[0] + vx
+                            pos[1] = pos[1] + vy
+                laser_path = laser_path + temp_path
+                del active_lasers[key]
+        else:
+            while len(active_lasers) != 0:
+                key, val = next(iter(active_lasers.items()))
+                temp_path = np.zeros_like(self.grid, dtype = int)
+                pos = [val[0],val[1]] # [x,y]
+                vx, vy, = val[2], val[3]
+                while self.in_grid(pos): 
+                    # np arrays are arr[y][x]
+                    temp_path[pos[1]][pos[0]] = 1
+                    if isinstance(board[pos[1]][pos[0]], Edge):
+                        pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers, temp_path)
+                    else:
+                        pos[0] = pos[0] + vx
+                        pos[1] = pos[1] + vy
+                laser_path = laser_path + temp_path
+                del active_lasers[key]
         return laser_path
     
 
@@ -327,15 +387,35 @@ class Grid:
             return False
         if pos[0] >= len(self.grid[0]) or pos[1] >= len(self.grid):
             return False
-        return 
+        return True
     
     def board_to_int(self, board):
-        new_board = np.empty(board.shape)
+        '''
+        convert objects to ints for visability (internal only)
+        '''
+        new_board = np.empty(board.shape, dtype = object)
         for i,row in enumerate(board): 
             for j,val in enumerate(row): 
                 if val != None:
                     new_board[i,j] = board[i,j].value
         return new_board
+
+    def check_solution(self, laser_path):
+        for key, val in self.point_dict.items():
+            if laser_path[val[1], val[0]] == 0:
+                return False
+        return True
+    
+    def find_solution(self, configs, slow = False):
+        for i, config in enumerate(configs):
+            # if i %1000==0: print(f'Testing config #{i}') 
+            board = self.config_to_board(config)
+            laser_path = self.get_laser_path(board, slow)
+
+            if self.check_solution(laser_path):
+                print("SOLVED LAZOR!")
+                return self.board_to_int(board), laser_path
+        raise ValueError("No Solution Found")
 
 
     def get_boards(self):
@@ -431,11 +511,16 @@ class Grid:
         return board_dictionary
     
 if __name__ == "__main__":
-    fname = 'mad_1.bff'
-    grid = Grid(fname)
-    print(grid.grid)
-    print(grid.block_dict)
-    print(grid.get_configs()[0])
-    print(grid.config_to_board(grid.get_configs()[0]))
-    print(grid.laser_dict)
-    print(grid.get_laser_path(grid.config_to_board(grid.get_configs()[0])))
+    dir = os.getcwd()
+    fnames = glob.glob(os.path.join(dir, "*.bff"))
+    max_time = 0
+    for fname in fnames:
+        start_time = time.time()
+        grid = Grid(fname)
+        print(grid.find_solution(grid.get_configs()))
+        end_time = time.time()
+        if end_time - start_time > max_time: 
+            max_time = end_time - start_time
+        print(f"Time to solve {fname}: {end_time - start_time}")
+    print(f"Max time to solve Lazor puzzle: {max_time}")
+

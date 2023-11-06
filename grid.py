@@ -4,7 +4,7 @@ Read in and extract all relevant data from bff file
     
 import numpy as np   
 from more_itertools import distinct_permutations as idp
-from blocks import Block
+from blocks import Block, Edge
 
 ### TODO: Add check to make sure laser direction abs(slope) = 1
 ### TODO: Can you add two blocks next to eachother??
@@ -268,9 +268,9 @@ class Grid:
             boards: *np.array*
                 An array containing the configuration on the grid
         ''' 
-        board = self.grid.copy()
+        board = np.empty(self.grid.shape, dtype=object)
         idx = 0
-        for i, row in enumerate(board): 
+        for i, row in enumerate(self.grid): 
             for j, ele in enumerate(row):
                 if ele == 'o':
                     block = Block(config[idx], i , j)
@@ -282,19 +282,31 @@ class Grid:
     def get_laser_path(self, board):
         '''
         '''
-        laser_path = np.zeros_like(self.grid)
-        for laser, val in self.laser_dict.items():
-            laser_path = np.zeros_like(self.grid)
-            pos = (val[0],val[1])
+        laser_path = np.zeros_like(self.grid, dtype=int)
+        active_lasers = self.laser_dict.copy()
+        while len(active_lasers) != 0:
+            key, val = next(iter(active_lasers.items()))
+            temp_path = np.zeros_like(self.grid, dtype = int)
+            pos = [val[0],val[1]] # [x,y]
+            print(val)
             vx, vy, = val[2], val[3]
+            print(pos)
             while self.in_grid(pos):
-                laser_path[val[0],val[1]] = 1
-                if isinstance(board[pos[0]][pos[1]], Block):
-                    pos, vx, vy = board[pos[0]][pos[1]].laser(vx, vy)
+                print('hi')
+                # np arrays are arr[y][x]
+                temp_path[pos[1]][pos[0]] = 1
+                print(temp_path)
+                print(board[pos[1]][pos[0]])
+                if isinstance(board[pos[1]][pos[0]], Edge):
+                    print('hit edge')
+                    pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
                 else:
                     pos[0] = pos[0] + vx
                     pos[1] = pos[1] + vy
-        return
+            laser_path = laser_path + temp_path
+            del active_lasers[key]
+        print(self.board_to_int(board))
+        return laser_path
     
 
     def in_grid(self, pos):
@@ -313,8 +325,17 @@ class Grid:
         ''' 
         if pos[0] < 0 or pos[1] < 0:
             return False
-        if pos[0] >= len(self.grid) or pos[1] >= len(self.grid[0]):
+        if pos[0] >= len(self.grid[0]) or pos[1] >= len(self.grid):
             return False
+        return 
+    
+    def board_to_int(self, board):
+        new_board = np.empty(board.shape)
+        for i,row in enumerate(board): 
+            for j,val in enumerate(row): 
+                if val != None:
+                    new_board[i,j] = board[i,j].value
+        return new_board
 
 
     def get_boards(self):
@@ -417,3 +438,4 @@ if __name__ == "__main__":
     print(grid.get_configs()[0])
     print(grid.config_to_board(grid.get_configs()[0]))
     print(grid.laser_dict)
+    print(grid.get_laser_path(grid.config_to_board(grid.get_configs()[0])))

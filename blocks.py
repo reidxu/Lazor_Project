@@ -1,11 +1,11 @@
 
 class Edge: 
-    def __init__(self, edge_type, edge_side, edge_pos):
-        self.type = edge_type
+    def __init__(self, block_type, edge_side, edge_pos):
+        self.value = block_type
         self.side = edge_side
         self.pos = edge_pos
     
-    def laser(self, board, vx, vy):
+    def laser(self, vx, vy, active_lasers):
         """
         Sets current pos as laser present and performs change in direction based off the block type 
 
@@ -23,59 +23,53 @@ class Edge:
             direciton: **tuple**
                 New direction depending on the block the laser hits
         """
-        new_pos = (-1,-1)
-        if self.block_type  == 0: #no block condition
-            new_pos[0] = self.x + vx
-            new_pos[1] = self.y + vy
-            return new_pos, vx, vy # no change in direction for no blocks
+        new_pos = [-1,-1]
+        if self.value  == 0: #no block condition
+            new_pos[0] = self.pos[0] + vx
+            new_pos[1] = self.pos[1] + vy
+            return new_pos, vx, vy, active_lasers # no change in direction for no blocks
         
-        if self.block_type == 1: #Refelctive block condition
+        if self.value == 1: #Refelctive block condition
+            if abs(self.side[0]) == 1: #if left or right edge, vx direction filps
+                vx = vx*-1
+            if abs(self.side[1]) == 1: #if top or bottom edge, vy direction filps
+                vy = vy*-1 
             
-                       
-            vx = direction[0]
-            vy = direction[1]
-            
-            # Change laser direction, need to add interpretation of direction here
-            vx *= -1 
-            vy += -1
-
-            direction = (vx,vy)
-
-            return board, direction
+            new_pos[0] = self.pos[0] + vx
+            new_pos[1] = self.pos[1] + vy
+            return new_pos, vx, vy, active_lasers
         
-        if self.block_type == 2:
-            board[curr_pos][1] = 1
-            vx = direction[0]
-            vy = direction[1]
-            vx = 0
-            vy = 0
-            direction = (vx, vy)
-            return board, direction
+        if self.value == 2: #opaque block
+            return (-1,-1), 0, 0, active_lasers
 
-        if self.block_type == 3:
-            board[curr_pos][1] = 1 
-            vx = direction[0]
-            vy = direction[1]
+        if self.value == 3:
+            active_lasers[max(active_lasers.keys())+1] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy)
 
-            vx_1 = vx
-            vy_1 = vy
-            vx_2 = vx_1 * (-1)
-            vy_2 = vy_1 * (-1)
+            if abs(self.side[0]) == 1: #if left or right edge, vx direction filps
+                vx = vx*-1
+            if abs(self.side[1]) == 1: #if top or bottom edge, vy direction filps
+                vy = vy*-1 
+            
+            new_pos[0] = self.pos[0] + vx
+            new_pos[1] = self.pos[1] + vy
 
-            direction = (vx_1, vy_1, vx_2, vy_2)
-            return board, direction
+            return new_pos, vx, vy, active_lasers
 
 class Block:
     def __init__(self, block_type, x = -1, y = -1):
-        self.block_type = block_type
+        self.value = block_type
         self.x = x
         self.y = y
         self.edges = self.get_edges()
     
     def add_to_board(self, board):
+        board[self.y][self.x] = self
         for edge in self.edges: 
-            board[edge.pos[0],edge.pos[1]] = self.block_type
+            # np arrays are arr[y][x]
+            board[edge.pos[1]][edge.pos[0]] = edge
         return board
+    
+
 
     
     def get_edges(self):
@@ -83,7 +77,7 @@ class Block:
         edges = []
         for edge in edges_pos: 
             edge_pos = (self.x + edge[0],self.y + edge[1])
-            edges.append(Edge(self.block_type, edge, edge_pos))
+            edges.append(Edge(self.value, edge, edge_pos))
         return edges
         
             

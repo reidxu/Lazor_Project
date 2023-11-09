@@ -340,21 +340,36 @@ class Grid:
         laser_path = np.zeros_like(self.grid, dtype=int)
         active_lasers = self.laser_dict.copy()
         positions = [] # list of all coords the laser hits  except for refracted ones
-        if slow: 
-            # for testing only
-            print(self.board_to_int(board))
-            for k in range(4):
-                key, val = next(iter(active_lasers.items()))
+
+            
+    
+        while len(active_lasers) != 0:
+            key, val = next(iter(active_lasers.items()))
             temp_path = np.zeros_like(self.grid, dtype = int)
             positions.append([val[0],val[1]]) # [x,y]
             vx, vy, = val[2], val[3]
             ref_positions = []
 
+            if isinstance(key,int):
+                while self.in_grid(positions[-1]): 
+                    origin = positions[-1]
+                    # np arrays are arr[y][x]
+                
+                    if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
+                        new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
+                        positions.append(new_pos)
+                    else:
+                        positions.append([origin[0] + vx, origin[1] + vy])
+                if key in active_lasers.keys():
+                    del active_lasers[key]
+                else:
+                    pass
+            
             if isinstance(key, float): #check if refractory block
                 refracted_laser = active_lasers.pop(key) #x, y, vx, vy
                 ref_active_lasers = {key:refracted_laser}
-               
-               
+            
+            
                 ref_positions.append([refracted_laser[0],refracted_laser[1]])
                 #print('ref block x, y', refracted_laser[0],refracted_laser[1])
                 ref_vx, ref_vy = refracted_laser[2], refracted_laser[3]
@@ -372,95 +387,30 @@ class Grid:
                         if self.in_grid(ref_new_pos):
                             ref_space = board[ref_new_pos[1]][ref_new_pos[0]]
                             if isinstance(ref_space, Edge):
-                                print(ref_space.value)
+                                if ref_space.value == 1:
+                                    #ref_vx = -3*ref_vx
+                                    if abs(ref_space.side[0]) ==1:
+                                        ref_vx = ref_vx* (-1)
+                                    if abs(ref_space.side[1]) == 1:
+                                        ref_vy = ref_vy *(-1)
+                                    ref_positions.append([ref_new_pos[0] + ref_vx, ref_new_pos[1]+ref_vy])
+                                if ref_space.value == 2: 
+                                    ref_positions.append([-1,-1])
                     else:
                         ref_positions.append([ref_origin[0]+ref_vx, ref_origin[1]+ref_vy])
                 del ref_active_lasers[key]
+                active_lasers.update(ref_active_lasers)
+        for coord in positions:
+            if self.in_grid(coord):
+                temp_path[coord[1]][coord[0]] = 1
+
+        for coord in ref_positions:
+            if self.in_grid(coord):
+                temp_path[coord[1]][coord[0]] = 1
         
-            while self.in_grid(positions[-1]): 
-                origin = positions[-1]
-                # np arrays are arr[y][x]
-               
-                if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
-                    new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
-                    positions.append(new_pos)
-                else:
-                    positions.append([origin[0] + vx, origin[1] + vy])
-            if key in active_lasers.keys():
-                del active_lasers[key]
-            else:
-                pass
+        laser_path = laser_path + temp_path
+        return laser_path
 
-            for coord in positions:
-                if self.in_grid(coord):
-                    temp_path[coord[1]][coord[0]] = 1
-
-            for coord in ref_positions:
-                if self.in_grid(coord):
-                    temp_path[coord[1]][coord[0]] = 1
-            
-            laser_path = laser_path + temp_path
-            
-        else:
-            while len(active_lasers) != 0:
-                key, val = next(iter(active_lasers.items()))
-                temp_path = np.zeros_like(self.grid, dtype = int)
-                positions.append([val[0],val[1]]) # [x,y]
-                vx, vy, = val[2], val[3]
-                ref_positions = []
-
-                if isinstance(key, float): #check if refractory block
-                    refracted_laser = active_lasers.pop(key) #x, y, vx, vy
-                    ref_active_lasers = {key:refracted_laser}
-                
-                
-                    ref_positions.append([refracted_laser[0],refracted_laser[1]])
-                    #print('ref block x, y', refracted_laser[0],refracted_laser[1])
-                    ref_vx, ref_vy = refracted_laser[2], refracted_laser[3]
-                    #print('old ref vx ,vy', ref_vx, ref_vy)
-                    #space = board[ref_positions[-1][1]][ref_positions[-1][0]]
-                    
-                    #print(space.value)
-                    while self.in_grid(ref_positions[-1]):
-                        ref_origin = ref_positions[-1]
-                        if isinstance(board[ref_positions[-1][1]][ref_positions[-1][0]], Edge):
-                            ref_new_pos, ref_vx, ref_vy, ref_active_lasers = board[ref_positions[-1][1]][ref_positions[-1][0]].laser(ref_vx, ref_vy, ref_active_lasers) 
-                            ref_positions.append(ref_new_pos)
-
-                            
-                            if self.in_grid(ref_new_pos):
-                                ref_space = board[ref_new_pos[1]][ref_new_pos[0]]
-                                if isinstance(ref_space, Edge):
-                                    print(ref_space.value)
-                        else:
-                            ref_positions.append([ref_origin[0]+ref_vx, ref_origin[1]+ref_vy])
-                    del ref_active_lasers[key]
-        
-                while self.in_grid(positions[-1]): 
-                    origin = positions[-1]
-                    # np arrays are arr[y][x]
-                
-                    if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
-                        new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
-                        positions.append(new_pos)
-                    else:
-                        positions.append([origin[0] + vx, origin[1] + vy])
-                if key in active_lasers.keys():
-                    del active_lasers[key]
-                else:
-                    pass
-
-            for coord in positions:
-                if self.in_grid(coord):
-                    temp_path[coord[1]][coord[0]] = 1
-
-            for coord in ref_positions:
-                if self.in_grid(coord):
-                    temp_path[coord[1]][coord[0]] = 1
-            
-            laser_path = laser_path + temp_path
-            return laser_path
-    
 
     def in_grid(self, pos):
         '''
@@ -554,9 +504,9 @@ if __name__ == "__main__":
     fnames = glob.glob(os.path.join(dir, "*.bff"))
     max_time = 0
 
-    fname = 'tiny_5.bff'
+    fname = 'yarn_5.bff'
     grid = Grid(fname)
     #print(grid.find_solution(grid.get_configs()))
-    grid.find_solution(grid.get_configs(), slow=True)
+    grid.find_solution(grid.get_configs(), slow=False)
 
 

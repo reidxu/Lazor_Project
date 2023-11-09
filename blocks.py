@@ -67,7 +67,7 @@ class Edge:
         if self.value  == 0: #no block condition
             return no_change() # no change in direction for no blocks
         
-        if self.value == 1: #Refelctive block condition
+        if self.value == 1: #Reflective block condition
             if self.hit_edge(vx, vy):
                 if abs(self.side[0]) == 1: #if left or right edge, vx direction filps
                     vx = vx*-1
@@ -89,14 +89,16 @@ class Edge:
         if self.value == 3:
             if self.hit_edge(vx, vy):
               
-                #active_thru_lasers[max(active_lasers.keys())+1] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy)
-                active_lasers['refracted' + str(max(active_lasers.keys())+1)] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy) 
+                
+                dupe_pos, dupe_vx, dupe_vy, dupe_active_lasers = no_change()
+                #active_lasers[float(max(active_lasers.keys())+1)] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy)
+                active_lasers[float(max(active_lasers.keys())+1)] = (dupe_pos[0], dupe_pos[1], dupe_vx, dupe_vy)
 
                 if abs(self.side[0]) == 1: #if left or right edge, vx direction filps
                     vx = vx*-1
                 if abs(self.side[1]) == 1: #if top or bottom edge, vy direction filps
                     vy = vy*-1 
-                
+   
                 new_pos[0] = self.pos[0] + vx
                 new_pos[1] = self.pos[1] + vy
 

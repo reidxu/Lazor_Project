@@ -348,30 +348,42 @@ class Grid:
             vx, vy, = val[2], val[3]
             ref_positions = []
 
-            if isinstance(key, str): #check if refractory block
+            if isinstance(key, float): #check if refractory block
                 refracted_laser = active_lasers.pop(key) #x, y, vx, vy
                 ref_active_lasers = {key:refracted_laser}
-         
+               
+               
                 ref_positions.append([refracted_laser[0],refracted_laser[1]])
+                #print('ref block x, y', refracted_laser[0],refracted_laser[1])
                 ref_vx, ref_vy = refracted_laser[2], refracted_laser[3]
+                #print('old ref vx ,vy', ref_vx, ref_vy)
+                #space = board[ref_positions[-1][1]][ref_positions[-1][0]]
+                
+                #print(space.value)
                 while self.in_grid(ref_positions[-1]):
                     ref_origin = ref_positions[-1]
                     if isinstance(board[ref_positions[-1][1]][ref_positions[-1][0]], Edge):
-                        ref_new_pos, ref_vx, ref_vy, ref_active_lasers = board[ref_positions[-1][1]][ref_positions[-1][0]].laser(ref_vx, ref_vy, ref_active_lasers)
+                        ref_new_pos, ref_vx, ref_vy, ref_active_lasers = board[ref_positions[-1][1]][ref_positions[-1][0]].laser(ref_vx, ref_vy, ref_active_lasers) 
                         ref_positions.append(ref_new_pos)
+
+                        
+                        if self.in_grid(ref_new_pos):
+                            ref_space = board[ref_new_pos[1]][ref_new_pos[0]]
+                            if isinstance(ref_space, Edge):
+                                print(ref_space.value)
                     else:
                         ref_positions.append([ref_origin[0]+ref_vx, ref_origin[1]+ref_vy])
                 del ref_active_lasers[key]
-                
-            while self.in_grid(positions[-1]): #some other while should be used 
+        
+            while self.in_grid(positions[-1]): 
                 origin = positions[-1]
                 # np arrays are arr[y][x]
-                if board[positions[-1][1]][positions[-1][0]] != 0:
-                    if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
-                        new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
-                        positions.append(new_pos)
-                    else:
-                        positions.append([origin[0] + vx, origin[1] + vy])
+               
+                if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
+                    new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
+                    positions.append(new_pos)
+                else:
+                    positions.append([origin[0] + vx, origin[1] + vy])
             if key in active_lasers.keys():
                 del active_lasers[key]
             else:
@@ -380,11 +392,11 @@ class Grid:
         for coord in positions:
             if self.in_grid(coord):
                 temp_path[coord[1]][coord[0]] = 1
+
         for coord in ref_positions:
             if self.in_grid(coord):
                 temp_path[coord[1]][coord[0]] = 1
         
-        print('ref_positions', ref_positions)
         laser_path = laser_path + temp_path
         return laser_path
     
@@ -485,4 +497,5 @@ if __name__ == "__main__":
     grid = Grid(fname)
     #print(grid.find_solution(grid.get_configs()))
     grid.find_solution(grid.get_configs())
+
 

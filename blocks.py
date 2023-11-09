@@ -88,7 +88,9 @@ class Edge:
 
         if self.value == 3:
             if self.hit_edge(vx, vy):
-                active_lasers[max(active_lasers.keys())+1] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy)
+              
+                #active_thru_lasers[max(active_lasers.keys())+1] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy)
+                active_lasers['refracted' + str(max(active_lasers.keys())+1)] = (self.pos[0] + vx, self.pos[1] + vy, vx, vy) 
 
                 if abs(self.side[0]) == 1: #if left or right edge, vx direction filps
                     vx = vx*-1

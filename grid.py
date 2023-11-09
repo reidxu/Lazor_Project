@@ -339,43 +339,53 @@ class Grid:
         '''
         laser_path = np.zeros_like(self.grid, dtype=int)
         active_lasers = self.laser_dict.copy()
-        if slow: 
-            # for testing only
-            print(self.board_to_int(board))
-            for k in range(4):
-                key, val = next(iter(active_lasers.items()))
-                temp_path = np.zeros_like(self.grid, dtype = int)
-                pos = [val[0],val[1]] # [x,y]
-                vx, vy, = val[2], val[3]
-                for i in range(20): 
-                    if self.in_grid(pos):
-                        # np arrays are arr[y][x]
-                        temp_path[pos[1]][pos[0]] = 1
-                        print(temp_path)
+        positions = [] # list of all coords the laser hits  except for refracted ones
+        
+        while len(active_lasers) != 0:
+            key, val = next(iter(active_lasers.items()))
+            temp_path = np.zeros_like(self.grid, dtype = int)
+            positions.append([val[0],val[1]]) # [x,y]
+            vx, vy, = val[2], val[3]
+            ref_positions = []
 
-                        if isinstance(board[pos[1]][pos[0]], Edge):
-                            pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
-                        else:
-                            pos[0] = pos[0] + vx
-                            pos[1] = pos[1] + vy
-                laser_path = laser_path + temp_path
-                del active_lasers[key]
-        else:
-            while len(active_lasers) != 0:
-                key, val = next(iter(active_lasers.items()))
-                temp_path = np.zeros_like(self.grid, dtype = int)
-                pos = [val[0],val[1]] # [x,y]
-                vx, vy, = val[2], val[3]
-                while self.in_grid(pos): 
-                    # np arrays are arr[y][x]
-                    temp_path[pos[1]][pos[0]] = 1
-                    if isinstance(board[pos[1]][pos[0]], Edge):
-                        pos, vx, vy, active_lasers = board[pos[1]][pos[0]].laser(vx, vy, active_lasers)
+            if isinstance(key, str): #check if refractory block
+                refracted_laser = active_lasers.pop(key) #x, y, vx, vy
+                ref_active_lasers = {key:refracted_laser}
+         
+                ref_positions.append([refracted_laser[0],refracted_laser[1]])
+                ref_vx, ref_vy = refracted_laser[2], refracted_laser[3]
+                while self.in_grid(ref_positions[-1]):
+                    ref_origin = ref_positions[-1]
+                    if isinstance(board[ref_positions[-1][1]][ref_positions[-1][0]], Edge):
+                        ref_new_pos, ref_vx, ref_vy, ref_active_lasers = board[ref_positions[-1][1]][ref_positions[-1][0]].laser(ref_vx, ref_vy, ref_active_lasers)
+                        ref_positions.append(ref_new_pos)
                     else:
-                        pos[0] = pos[0] + vx
-                        pos[1] = pos[1] + vy
-                laser_path = laser_path + temp_path
+                        ref_positions.append([ref_origin[0]+ref_vx, ref_origin[1]+ref_vy])
+                del ref_active_lasers[key]
+                
+            while self.in_grid(positions[-1]): #some other while should be used 
+                origin = positions[-1]
+                # np arrays are arr[y][x]
+                if board[positions[-1][1]][positions[-1][0]] != 0:
+                    if isinstance(board[positions[-1][1]][positions[-1][0]], Edge):
+                        new_pos, vx, vy, active_lasers = board[positions[-1][1]][positions[-1][0]].laser(vx, vy, active_lasers)
+                        positions.append(new_pos)
+                    else:
+                        positions.append([origin[0] + vx, origin[1] + vy])
+            if key in active_lasers.keys():
                 del active_lasers[key]
+            else:
+                pass
+
+        for coord in positions:
+            if self.in_grid(coord):
+                temp_path[coord[1]][coord[0]] = 1
+        for coord in ref_positions:
+            if self.in_grid(coord):
+                temp_path[coord[1]][coord[0]] = 1
+        
+        print('ref_positions', ref_positions)
+        laser_path = laser_path + temp_path
         return laser_path
     
 
@@ -462,6 +472,7 @@ class Grid:
 
             if self.check_solution(laser_path):
                 print("SOLVED LAZOR!")
+                print(config)
                 return self.board_to_int(board), laser_path
         raise ValueError("No Solution Found")
 
@@ -469,13 +480,9 @@ if __name__ == "__main__":
     dir = os.getcwd()
     fnames = glob.glob(os.path.join(dir, "*.bff"))
     max_time = 0
-    for fname in fnames:
-        start_time = time.time()
-        grid = Grid(fname)
-        print(grid.find_solution(grid.get_configs()))
-        end_time = time.time()
-        if end_time - start_time > max_time: 
-            max_time = end_time - start_time
-        print(f"Time to solve {fname}: {end_time - start_time}")
-    print(f"Max time to solve Lazor puzzle: {max_time}")
+
+    fname = 'tiny_5.bff'
+    grid = Grid(fname)
+    #print(grid.find_solution(grid.get_configs()))
+    grid.find_solution(grid.get_configs())
 

@@ -9,10 +9,9 @@ import time
 import os
 import glob
 
-### TODO: Add check to make sure laser direction abs(slope) = 1
-### TODO: Can you add two blocks next to eachother??
-### TODO: Convert final board to desired output, not sure what it needs to be
 ### TODO: general error checking
+### TODO: Formatting to PEP8
+### TODO: if time, try to improve the hard coded stuff
 
 class Grid:
 

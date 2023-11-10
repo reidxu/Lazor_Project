@@ -371,25 +371,20 @@ class Grid:
             
             
                 ref_positions.append([refracted_laser[0],refracted_laser[1]])
-                #print('ref block x, y', refracted_laser[0],refracted_laser[1])
+               
                 ref_vx, ref_vy = refracted_laser[2], refracted_laser[3]
-                #print('old ref vx ,vy', ref_vx, ref_vy)
-                #space = board[ref_positions[-1][1]][ref_positions[-1][0]]
-                
-                #print(space.value)
+               
                 while self.in_grid(ref_positions[-1]):
                     ref_origin = ref_positions[-1]
-                    if isinstance(board[ref_positions[-1][1]][ref_positions[-1][0]], Edge):
+                    if isinstance(board[ref_positions[-1][1]][ref_positions[-1][0]], Edge): # handling refract blocks separately
                         ref_new_pos, ref_vx, ref_vy, ref_active_lasers = board[ref_positions[-1][1]][ref_positions[-1][0]].laser(ref_vx, ref_vy, ref_active_lasers) 
                         ref_positions.append(ref_new_pos)
-
                         
                         if self.in_grid(ref_new_pos):
                             ref_space = board[ref_new_pos[1]][ref_new_pos[0]]
                             if isinstance(ref_space, Edge):
                                 if ref_space.value == 1:
-                                    #ref_vx = -3*ref_vx
-                                    if abs(ref_space.side[0]) ==1:
+                                    if abs(ref_space.side[0]) ==1: 
                                         ref_vx = ref_vx* (-1)
                                     if abs(ref_space.side[1]) == 1:
                                         ref_vy = ref_vy *(-1)
@@ -499,6 +494,9 @@ class Grid:
                 return self.board_to_int(board), laser_path
         raise ValueError("No Solution Found")
 
+    #def solution_to_grid(self, solution):
+
+
 if __name__ == "__main__":
     dir = os.getcwd()
     fnames = glob.glob(os.path.join(dir, "*.bff"))
@@ -508,5 +506,6 @@ if __name__ == "__main__":
     grid = Grid(fname)
     #print(grid.find_solution(grid.get_configs()))
     grid.find_solution(grid.get_configs(), slow=False)
+    
 
 

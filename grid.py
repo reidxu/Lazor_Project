@@ -490,22 +490,78 @@ class Grid:
 
             if self.check_solution(laser_path):
                 print("SOLVED LAZOR!")
-                print(config)
-                return self.board_to_int(board), laser_path
+                #print(config)
+                return self.board_to_int(board), laser_path, config
         raise ValueError("No Solution Found")
 
-    #def solution_to_grid(self, solution):
+    def output_solution(self):
+        '''
+        This function takes the output of find_solution() and converts it
+        to an array that is more easily readable 
 
+        **Parameters**
+            board_int: **arr**
+                output array from the board_to_int() function
+        **Outputs**
+            solved_board: **arr**
+                Solution array formattted for easier reading 
+        '''
+
+        infile = open(self.fname)
+        start_search = False
+        grid_list = []
+        for line in infile:
+            if line.strip() == "GRID START":
+                start_search = True
+                continue
+            elif line.strip() == "GRID STOP":
+                start_search = False
+                continue
+            elif start_search:
+                grid_list.append([i for i in line.strip() if i != ' '])
+        configs = self.get_configs()
+        board_int, laser_path, soln_config = self.find_solution(configs)
+        soln_config = list(soln_config)
+
+        rows = len(grid_list)
+        cols = len(grid_list[0])
+        
+        for row in range(rows):
+            for col in range(cols):
+                if grid_list[row][col] == 'o':
+                    grid_list[row][col] = soln_config[0]
+                    soln_config.remove(soln_config[0])
+        for row in range(rows):
+            for col in range(cols):
+                if grid_list[row][col] == 0:
+                    grid_list[row][col] = 'o'
+                if grid_list[row][col] == 1:
+                    grid_list[row][col] = 'A'
+                if grid_list[row][col] == 2:
+                    grid_list[row][col] = 'B'
+                if grid_list[row][col] == 3:
+                    grid_list[row][col] = 'C'
+        solved_board = np.array(grid_list)
+        
+        solution_fname = self.fname + '_solution.txt'
+        with open(solution_fname, 'w') as file:
+            file.write(str(solved_board))
+            file.close()
+        return solved_board
+
+        
 
 if __name__ == "__main__":
     dir = os.getcwd()
     fnames = glob.glob(os.path.join(dir, "*.bff"))
     max_time = 0
 
-    fname = 'yarn_5.bff'
+    fname = 'mad_4.bff'
     grid = Grid(fname)
     #print(grid.find_solution(grid.get_configs()))
-    grid.find_solution(grid.get_configs(), slow=False)
+    #board_int, laser_path = grid.find_solution(grid.get_configs(), slow=False)
+    #print(board_int)
+    print(grid.output_solution())
     
 
 

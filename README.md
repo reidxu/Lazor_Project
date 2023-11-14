@@ -51,4 +51,4 @@ a filename-solution.txt file will be saved. The txt file will show the solution 
 that was used to communicate the board in the .bff input file. If no solution is found, a failure message will be given. 
 
 # Potential Bugs
-Due to the way that refraction is coded, refractory block behavior had to be individually hard coded within the loop that finds laser path. This can potentially lead to a bug when 2 refractory blocks are next to each other and a laser will have to pass through both of them.
+Due to the way that refraction is coded, refractory block behavior had to be individually hard coded within the loop that finds laser path. This can potentially lead to a inaccurate laser behavior when 2 refractory blocks are next to each other and a laser will have to pass through both of them.

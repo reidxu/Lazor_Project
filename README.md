@@ -49,3 +49,6 @@ Open the Final_Solution.py file. Initialize a Grid() object with an argument of 
 Call the Grid.output_solution() function, and if a solution is found, a success message will be output and 
 a filename-solution.txt file will be saved. The txt file will show the solution grid using the same key
 that was used to communicate the board in the .bff input file. If no solution is found, a failure message will be given. 
+
+# Potential Bugs
+Due to the way that refraction is coded, refractory block behavior had to be individually hard coded within the loop that finds laser path. This can potentially lead to a bug when 2 refractory blocks are next to each other and a laser will have to pass through both of them.

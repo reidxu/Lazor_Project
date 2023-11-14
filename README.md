@@ -20,16 +20,11 @@ To solve levels in this game, we developed this code that would calculate all po
 that lasers will take for each board configuration. If all goal points are hit by lasers by a configuration, that configuration is flagged as the solution. 
 
 # File Input
-To use this solver, boards should be fed into the code as '.bff' files. The .bff file should contain the board in this format:
+To use this solver, boards should be fed into the code as '.bff' files. The grids should be preceded by "GRID START" and end with "GRID STOP" at the top and bottom of the grids. 
 
-GRID START
-o   o   o   o
-o   o   o   o
-o   o   o   o
-o   o   o   o
-GRID STOP
 
-Depending on the board, the 'o' spaces may be replaced with the following:
+
+The key to define spaces and blocks on the board is given here: 
 x = no block allowed
 o = blocks allowed
 A = fixed reflect block
